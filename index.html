@@ -1,3 +1,4 @@
+
 <!DOCTYPE html>
 <html lang="en">
 <head>
@@ -15,12 +16,10 @@
         }
         .mono { font-family: 'JetBrains Mono', monospace; }
         
-        /* Custom Scrollbar */
         ::-webkit-scrollbar { width: 8px; }
         ::-webkit-scrollbar-track { background: #1e293b; }
         ::-webkit-scrollbar-thumb { background: #3b82f6; border-radius: 4px; }
         
-        /* Animations */
         @keyframes pulse-glow {
             0%, 100% { box-shadow: 0 0 20px rgba(59, 130, 246, 0.3); }
             50% { box-shadow: 0 0 30px rgba(59, 130, 246, 0.6); }
@@ -42,70 +41,114 @@
             border-color: #10b981;
         }
         
-        .progress-ring {
-            transform: rotate(-90deg);
-            transform-origin: 50% 50%;
-        }
-        
-        .course-card {
-            transition: all 0.3s ease;
-        }
-        .course-card:hover {
-            transform: translateY(-2px);
-            box-shadow: 0 20px 40px rgba(0, 0, 0, 0.4);
-        }
+        .course-card { transition: all 0.3s ease; }
+        .course-card:hover { transform: translateY(-2px); box-shadow: 0 20px 40px rgba(0, 0, 0, 0.4); }
         
         .session-block {
             transition: all 0.3s ease;
             border-left: 4px solid transparent;
         }
-        .session-block.completed {
-            border-left-color: #10b981;
-            background: rgba(16, 185, 129, 0.1);
-        }
-        .session-block.active {
-            border-left-color: #3b82f6;
-            background: rgba(59, 130, 246, 0.1);
+        .session-block.completed { border-left-color: #10b981; background: rgba(16, 185, 129, 0.1); }
+        .session-block.active { 
+            border-left-color: #3b82f6; 
+            background: rgba(59, 130, 246, 0.1); 
             animation: pulse-glow 2s infinite;
         }
         
-        .streak-flame {
-            animation: flicker 1.5s ease-in-out infinite alternate;
-        }
+        .streak-flame { animation: flicker 1.5s ease-in-out infinite alternate; }
         @keyframes flicker {
             0%, 100% { opacity: 1; transform: scale(1); }
             50% { opacity: 0.8; transform: scale(1.1); }
+        }
+        
+        .live-clock {
+            font-variant-numeric: tabular-nums;
+            letter-spacing: 0.05em;
+        }
+        
+        .notification-btn.active {
+            background: #10b981;
+            color: white;
+        }
+        
+        .quiz-input {
+            background: rgba(15, 23, 42, 0.8);
+            border: 1px solid #334155;
+            transition: all 0.3s;
+        }
+        .quiz-input:focus {
+            border-color: #3b82f6;
+            outline: none;
+            box-shadow: 0 0 0 3px rgba(59, 130, 246, 0.1);
         }
     </style>
 </head>
 <body class="min-h-screen pb-20">
 
-    <!-- Header -->
-    <header class="sticky top-0 z-50 glass-panel border-b border-slate-700">
-        <div class="max-w-7xl mx-auto px-4 py-4 flex items-center justify-between">
-            <div class="flex items-center gap-3">
-                <div class="w-10 h-10 bg-gradient-to-br from-blue-500 to-purple-600 rounded-lg flex items-center justify-center">
-                    <i data-lucide="brain" class="w-6 h-6 text-white"></i>
+    <!-- Permission Request Modal -->
+    <div id="notifModal" class="fixed inset-0 bg-black/80 backdrop-blur-sm z-50 hidden flex items-center justify-center p-4">
+        <div class="glass-panel rounded-2xl p-6 max-w-md w-full border border-blue-500/30">
+            <div class="flex items-center gap-3 mb-4">
+                <div class="w-12 h-12 bg-blue-500/20 rounded-xl flex items-center justify-center">
+                    <i data-lucide="bell" class="w-6 h-6 text-blue-400"></i>
                 </div>
-                <div>
-                    <h1 class="text-xl font-bold bg-gradient-to-r from-blue-400 to-purple-400 bg-clip-text text-transparent">
-                        Data Science Mastery
-                    </h1>
-                    <p class="text-xs text-slate-400">Daily Study Planner</p>
-                </div>
+                <h3 class="text-xl font-bold">Enable Study Reminders?</h3>
             </div>
-            
-            <div class="flex items-center gap-6">
-                <div class="text-right hidden sm:block">
-                    <div class="text-xs text-slate-400 uppercase tracking-wider">Current Streak</div>
-                    <div class="flex items-center gap-1 text-orange-400 font-bold streak-flame">
-                        <i data-lucide="flame" class="w-4 h-4"></i>
-                        <span id="streakCount" class="text-lg">0</span> days
+            <p class="text-slate-300 mb-6">Get notified at 5:00 AM, 11:40 AM, and 7:00 PM for your study sessions. You can customize these times.</p>
+            <div class="flex gap-3">
+                <button onclick="requestNotificationPermission()" class="flex-1 bg-blue-500 hover:bg-blue-600 text-white font-semibold py-3 rounded-xl transition-colors">
+                    Enable Notifications
+                </button>
+                <button onclick="closeNotifModal()" class="flex-1 bg-slate-700 hover:bg-slate-600 text-slate-300 font-semibold py-3 rounded-xl transition-colors">
+                    Maybe Later
+                </button>
+            </div>
+        </div>
+    </div>
+
+    <!-- Header with Live Clock -->
+    <header class="sticky top-0 z-40 glass-panel border-b border-slate-700">
+        <div class="max-w-7xl mx-auto px-4 py-4">
+            <div class="flex flex-col md:flex-row md:items-center justify-between gap-4">
+                <div class="flex items-center gap-3">
+                    <div class="w-10 h-10 bg-gradient-to-br from-blue-500 to-purple-600 rounded-lg flex items-center justify-center">
+                        <i data-lucide="brain" class="w-6 h-6 text-white"></i>
+                    </div>
+                    <div>
+                        <h1 class="text-xl font-bold bg-gradient-to-r from-blue-400 to-purple-400 bg-clip-text text-transparent">
+                            Data Science Mastery
+                        </h1>
+                        <p class="text-xs text-slate-400">Daily Study Planner</p>
                     </div>
                 </div>
-                <div class="text-right">
-                    <div class="text-xs text-slate-400 uppercase tracking-wider">Week</div>
-                    <div class="text-lg font-bold text-blue-400 mono" id="currentWeek">Week 1</div>
+                
+                <!-- Live Clock -->
+                <div class="flex items-center gap-4 bg-slate-800/50 rounded-xl px-4 py-2 border border-slate-700">
+                    <div class="flex items-center gap-2 text-orange-400">
+                        <i data-lucide="clock" class="w-5 h-5"></i>
+                        <span class="text-2xl font-bold mono live-clock" id="liveClock">00:00:00</span>
+                    </div>
+                    <div class="h-8 w-px bg-slate-600"></div>
+                    <div class="text-xs text-slate-400">
+                        <div id="nextSessionLabel">Next: Morning</div>
+                        <div class="text-slate-500" id="countdownTimer">in 2h 15m</div>
+                    </div>
+                </div>
+
+                <div class="flex items-center gap-4">
+                    <!-- Notification Toggle -->
+                    <button onclick="toggleNotifications()" id="notifBtn" class="notification-btn flex items-center gap-2 px-3 py-2 rounded-lg bg-slate-800 border border-slate-600 hover:border-blue-400 transition-all text-sm">
+                        <i data-lucide="bell-off" class="w-4 h-4" id="notifIcon"></i>
+                        <span id="notifText">Off</span>
+                    </button>
+                    
+                    <div class="text-right">
+                        <div class="text-xs text-slate-400 uppercase tracking-wider">Current Streak</div>
+                        <div class="flex items-center gap-1 text-orange-400 font-bold streak-flame">
+                            <i data-lucide="flame" class="w-4 h-4"></i>
+                            <span id="streakCount" class="text-lg">0</span> days
+                        </div>
+                    </div>
                 </div>
             </div>
         </div>
@@ -121,7 +164,7 @@
                 <h3 class="text-slate-400 text-sm font-semibold uppercase tracking-wider mb-2">Total Progress</h3>
                 <div class="flex items-end gap-2">
                     <span class="text-4xl font-bold text-white mono" id="totalHoursCompleted">0</span>
-                    <span class="text-slate-500 mb-1">/ <span id="totalHoursTarget">219</span>h</span>
+                    <span class="text-slate-500 mb-1">/ <span id="totalHoursTarget">139</span>h</span>
                 </div>
                 <div class="mt-3 w-full bg-slate-700 rounded-full h-2">
                     <div id="totalProgressBar" class="bg-gradient-to-r from-blue-500 to-purple-500 h-2 rounded-full transition-all duration-500" style="width: 0%"></div>
@@ -171,7 +214,7 @@
 
         <!-- Today's Schedule -->
         <section class="space-y-6">
-            <div class="flex items-center justify-between">
+            <div class="flex items-center justify-between flex-wrap gap-4">
                 <h2 class="text-2xl font-bold flex items-center gap-2">
                     <i data-lucide="calendar" class="w-6 h-6 text-blue-400"></i>
                     Today's Schedule
@@ -303,536 +346,10 @@
                         </div>
                         <h4 class="text-xl font-bold text-white" id="eveningTopic">Loading...</h4>
                         <p class="text-slate-400 text-sm" id="eveningDetails">Loading...</p>
-                        <div class="mt-4 pt-4 border-t border-slate-700">
+                        
+                        <!-- Quiz Section -->
+                        <div class="mt-4 pt-4 border-t border-slate-700 space-y-3">
                             <div class="bg-slate-800/50 rounded-lg p-3 border border-slate-700">
-                                <p class="text-xs text-slate-500 uppercase tracking-wider mb-1">Daily Quiz (3 Questions)</p>
-                                <div class="flex items-center gap-2 text-sm text-slate-300">
-                                    <i data-lucide="help-circle" class="w-4 h-4 text-purple-400"></i>
-                                    <span id="quizTopic">Based on today's topics</span>
-                                </div>
-                            </div>
-                        </div>
-                    </div>
-                </div>
-            </div>
-        </section>
-
-        <!-- Weekly Overview -->
-        <section class="glass-panel rounded-2xl p-6">
-            <h2 class="text-xl font-bold mb-6 flex items-center gap-2">
-                <i data-lucide="layout-grid" class="w-5 h-5 text-blue-400"></i>
-                This Week's Topics
-            </h2>
-            <div class="overflow-x-auto">
-                <table class="w-full text-left border-collapse">
-                    <thead>
-                        <tr class="border-b border-slate-700 text-slate-400 text-sm">
-                            <th class="pb-3 font-semibold">Day</th>
-                            <th class="pb-3 font-semibold">Date</th>
-                            <th class="pb-3 font-semibold">Course</th>
-                            <th class="pb-3 font-semibold">Morning Focus</th>
-                            <th class="pb-3 font-semibold">Status</th>
-                        </tr>
-                    </thead>
-                    <tbody id="weeklyTable" class="text-sm">
-                        <!-- Weekly rows injected via JS -->
-                    </tbody>
-                </table>
-            </div>
-        </section>
-
-        <!-- Reset Data -->
-        <section class="flex justify-end">
-            <button onclick="resetAllProgress()" class="text-xs text-slate-500 hover:text-red-400 transition-colors flex items-center gap-1">
-                <i data-lucide="trash-2" class="w-3 h-3"></i>
-                Reset All Progress
-            </button>
-        </section>
-    </main>
-
-    <script>
-        // Initialize Lucide icons
-        lucide.createIcons();
-
-        // Course Data Structure
-        const courses = [
-            {
-                id: 'python',
-                name: '100 Days of Code — Python',
-                instructor: 'Dr. Angela Yu',
-                totalHours: 65,
-                color: 'from-yellow-500 to-orange-600',
-                icon: 'file-code',
-                sections: [
-                    { day: 1, title: 'Day 1: Working with Variables', hours: 2, topics: ['Printing to Console', 'String Manipulation', 'Input Function', 'Variables'] },
-                    { day: 2, title: 'Day 2: Understanding Data Types', hours: 2, topics: ['Primitive Data Types', 'Type Conversion', 'Mathematical Operations', 'Number Manipulation'] },
-                    { day: 3, title: 'Day 3: Control Flow & Logical Operators', hours: 2, topics: ['If/Else Statements', 'Comparison Operators', 'Nested If Statements', 'Logical Operators'] },
-                    { day: 4, title: 'Day 4: Randomization & Python Lists', hours: 2, topics: ['Random Module', 'Lists Basics', 'Index Errors', 'Nested Lists'] },
-                    { day: 5, title: 'Day 5: Python Loops', hours: 2, topics: ['For Loops', 'Range Function', 'While Loops', 'Break/Continue'] },
-                    { day: 6, title: 'Day 6: Python Functions & Karel', hours: 2, topics: ['Defining Functions', 'While Loops Challenge', 'Hurdles with Reeborg', 'Indentation'] },
-                    { day: 7, title: 'Day 7: Hangman Project', hours: 2, topics: ['Breaking Down Problems', 'Flow Chart Programming', 'Scope', 'Return Values'] },
-                    { day: 8, title: 'Day 8: Function Parameters', hours: 2, topics: ['Positional Arguments', 'Keyword Arguments', 'Caesar Cipher Project', 'Prime Number Checker'] },
-                    { day: 9, title: 'Day 9: Dictionaries & Nesting', hours: 2, topics: ['Python Dictionaries', 'Nesting Lists & Dictionaries', 'Secret Auction Program', 'Blind Auction'] },
-                    { day: 10, title: 'Day 10: Functions with Outputs', hours: 2, topics: ['Return Values', 'Docstrings', 'Calculator Project', 'Recursion'] },
-                    { day: 11, title: 'Day 11: Blackjack Capstone', hours: 2, topics: ['Game Logic', 'Dealing Cards', 'Scoring', 'Computer AI'] },
-                    { day: 12, title: 'Day 12: Scope & Number Guessing', hours: 2, topics: ['Local vs Global Scope', 'Modifying Global Scope', 'Constants', 'Number Guessing Game'] },
-                    { day: 13, title: 'Day 13: Debugging', hours: 2, topics: ['Describing Problems', 'Reproducing Bugs', 'Play Computer', 'Fixing Errors'] },
-                    { day: 14, title: 'Day 14: Higher Lower Game', hours: 2, topics: ['Game Mechanics', 'Comparing Data', 'Keeping Score', 'Format Data'] },
-                    { day: 15, title: 'Day 15: Local Development', hours: 2, topics: ['PyCharm Setup', 'Coffee Machine Project', 'Menu Resources', 'Money Handling'] },
-                    { day: 16, title: 'Day 16: OOP Basics', hours: 2, topics: ['Classes & Objects', 'Constructing Objects', 'Accessing Attributes', 'Methods'] },
-                    { day: 17, title: 'Day 17: Quiz Project OOP', hours: 2, topics: ['Creating Classes', 'Initializing Attributes', 'Methods', 'Quiz Logic'] },
-                    { day: 18, title: 'Day 18: Turtle Graphics', hours: 2, topics: ['Turtle Module', 'Importing Modules', 'Drawing Shapes', 'Random Walk'] },
-                    { day: 19, title: 'Day 19: Instances & Higher Order', hours: 2, topics: ['Event Listeners', 'Multiple Instances', 'Etch-A-Sketch', 'Turtle Race'] },
-                    { day: 20, title: 'Day 20: Snake Game Part 1', hours: 2, topics: ['Screen Setup', 'Creating Snake Body', 'Animating Snake', 'Class Inheritance'] },
-                    { day: 21, title: 'Day 21: Snake Game Part 2', hours: 2, topics: ['Class Inheritance', 'Detecting Collisions', 'Scoreboard', 'File I/O'] },
-                    { day: 22, title: 'Day 22: Pong Game', hours: 2, topics: ['Screen Setup', 'Paddle Creation', 'Ball Movement', 'Score Keeping'] },
-                    { day: 23, title: 'Day 23: Turtle Crossing', hours: 2, topics: ['Player Movement', 'Car Generation', 'Collision Detection', 'Level System'] },
-                    { day: 24, title: 'Day 24: Files & Directories', hours: 2, topics: ['Open/Read/Write', 'Relative/Absolute Paths', 'Mail Merge Project', 'Snake High Score'] },
-                    { day: 25, title: 'Day 25: CSV Data & Pandas', hours: 2, topics: ['CSV Library', 'Pandas Basics', 'DataFrames', 'Squirrel Census'] },
-                    { day: 26, title: 'Day 26: List Comprehension', hours: 2, topics: ['List/Dict Comprehension', 'NATO Alphabet Project', 'Iterating DataFrames', 'Keyword Arguments'] },
-                    { day: 27, title: 'Day 27: Tkinter & GUI', hours: 2, topics: ['Tkinter Basics', 'Widgets', 'Layout Managers', 'Miles to KM Converter'] },
-                    { day: 28, title: 'Day 28: Pomodoro Timer', hours: 2, topics: ['Dynamic Typing', 'Canvas Widget', 'Timer Mechanism', 'UI Setup'] },
-                    { day: 29, title: 'Day 29: Password Manager', hours: 2, topics: ['Grid Layout', 'Saving Data', 'Dialogs', 'Generate Password'] },
-                    { day: 30, title: 'Day 30: Errors & Exceptions', hours: 2, topics: ['Try/Except/Else/Finally', 'Raising Exceptions', 'JSON Data', 'Password Manager Update'] },
-                    { day: 31, title: 'Day 31: Flash Card App', hours: 2, topics: ['Canvas', 'Pandas', 'Timer', 'Flip Cards'] },
-                    { day: 32, title: 'Day 32: Email SMTP', hours: 2, topics: ['Datetime Module', 'Send Email', 'Motivational Quotes', 'Automated Birthday'] },
-                    { day: 33, title: 'Day 33: API Endpoints', hours: 2, topics: ['HTTP Requests', 'API Parameters', 'ISS Overhead', 'Kanye Quotes'] },
-                    { day: 34, title: 'Day 34: API Practice', hours: 2, topics: ['Trivia API', 'Unescape HTML', 'Type Hints', 'Quiz UI'] },
-                    { day: 35, title: 'Day 35: Keys & Auth', hours: 2, topics: ['API Keys', 'Environment Variables', 'Rain Alert App', 'Twilio API'] },
-                    { day: 36, title: 'Day 36: Stock Trading News', hours: 2, topics: ['Stock API', 'News API', 'Percentage Change', 'SMS Alerts'] },
-                    { day: 37, title: 'Day 37: Habit Tracking', hours: 2, topics: ['Pixela API', 'HTTP Headers', 'POST/PUT/DELETE', 'Graphs'] },
-                    { day: 38, title: 'Day 38: Workout Tracking', hours: 2, topics: ['Nutritionix API', 'Sheety API', 'Google Sheets', 'Natural Language'] },
-                    { day: 39, title: 'Day 39: Flight Deal Finder', hours: 2, topics: ['Tequila API', 'Google Sheets', 'Twilio', 'Data Manager'] },
-                    { day: 40, title: 'Day 40: Flight Club', hours: 2, topics: ['Users', 'Sheety Users', 'Env Variables', 'Email Notifications'] },
-                    { day: 41, title: 'Day 41-44: Web Foundation', hours: 2, topics: ['HTML Basics', 'CSS Basics', 'Intermediate CSS', 'Web Design'] },
-                    { day: 42, title: 'Day 45: Web Scraping', hours: 2, topics: ['Beautiful Soup', 'Live Website', 'Hacker News', 'Top 10 Movies'] },
-                    { day: 43, title: 'Day 46: Spotify Playlist', hours: 2, topics: ['Musical Time Machine', 'Billboard Hot 100', 'Spotipy', 'Playlist Creation'] },
-                    { day: 44, title: 'Day 47: Amazon Price Tracker', hours: 2, topics: ['HTTP Headers', 'User-Agent', 'Beautiful Soup', 'Email Alerts'] },
-                    { day: 45, title: 'Day 48: Selenium Webdriver', hours: 2, topics: ['Browser Automation', 'Cookie Clicker', 'Python Events', 'Wikipedia Game'] },
-                    { day: 46, title: 'Day 49: LinkedIn Automation', hours: 2, topics: ['Selenium Login', 'Applying to Jobs', 'Easy Apply', 'Data Entry'] },
-                    { day: 47, title: 'Day 50: Tinder Swiper', hours: 2, topics: ['Login Flow', 'Handling Popups', 'Auto Swipe', 'Safety Delays'] },
-                    { day: 48, title: 'Day 51: Internet Speed Twitter', hours: 2, topics: ['Speed Test', 'Twitter API', 'Complaint Bot', 'Promised vs Actual'] },
-                    { day: 49, title: 'Day 52: Instagram Follower Bot', hours: 2, topics: ['Find Followers', 'Follow Users', 'Similar Accounts', 'Scroll Logic'] },
-                    { day: 50, title: 'Day 53: Data Entry Job Automation', hours: 2, topics: ['Zillow Research', 'Google Forms', 'Selenium', 'Data Collection'] },
-                    { day: 51, title: 'Day 54: Flask Basics', hours: 2, topics: ['Web Servers', 'Flask Hello World', 'Decorators', 'HTML Rendering'] },
-                    { day: 52, title: 'Day 55: Higher Lower Game Web', hours: 2, topics: ['URL Variables', 'Flask Debugging', 'Higher/Lower URL', 'Server Logic'] },
-                    { day: 53, title: 'Day 56: Name Card Site', hours: 2, topics: ['Static Files', 'Templates', 'CSS Styling', 'Personal Site'] },
-                    { day: 54, title: 'Day 57: Blog Capstone 1', hours: 2, topics: ['Jinja Templating', 'Blog Posts', 'API Integration', 'Rendering'] },
-                    { day: 55, title: 'Day 58: Bootstrap', hours: 2, topics: ['Bootstrap Grid', 'Components', 'Tindog Project', 'Responsive Design'] },
-                    { day: 56, title: 'Day 59: Blog Capstone 2', hours: 2, topics: ['Upgraded Blog', 'Bootstrap Integration', 'Contact Form', 'Footer'] },
-                    { day: 57, title: 'Day 60: HTML Forms', hours: 2, topics: ['POST Requests', 'Form Handling', 'Contact Page', 'Data Reception'] },
-                    { day: 58, title: 'Day 61: Flask-WTF', hours: 2, topics: ['Flask Forms', 'Validation', 'Quick Form', 'Success Page'] },
-                    { day: 59, title: 'Day 62: Coffee & Wifi', hours: 2, topics: ['CSV & Pandas', 'Flask CSV', 'Add Cafe Form', 'Bootstrap Tables'] },
-                    { day: 60, title: 'Day 63: Virtual Bookshelf', hours: 2, topics: ['SQLite', 'SQLAlchemy', 'CRUD Operations', 'Library Project'] },
-                    { day: 61, title: 'Day 64: Top 10 Movies', hours: 2, topics: ['SQLAlchemy Relationships', 'Movie Database', 'API Integration', 'Ranking'] },
-                    { day: 62, title: 'Day 65: Web Design School', hours: 2, topics: ['UI/UX Principles', 'Color Theory', 'Typography', 'Design Rules'] },
-                    { day: 63, title: 'Day 66: REST API', hours: 2, topics: ['RESTful Routing', 'Postman', 'Cafe API', 'JSON Response'] },
-                    { day: 64, title: 'Day 67: Blog Capstone 3', hours: 2, topics: ['RESTful Blog', 'Create/Edit/Delete', 'Database', 'Admin'] },
-                    { day: 65, title: 'Day 68: Authentication', hours: 2, topics: ['Register/Login', 'Flask-Login', 'Hashing', 'User Authentication'] },
-                    { day: 66, title: 'Day 69: Blog Capstone 4', hours: 2, topics: ['Comments', 'Gravatar', 'Relational DB', 'Deployment Prep'] },
-                    { day: 67, title: 'Day 70: Git & Deploy', hours: 2, topics: ['Git Basics', 'GitHub', 'Heroku Deployment', 'Environment Variables'] },
-                    { day: 68, title: 'Day 71-80: Data Science Intro', hours: 2, topics: ['NumPy', 'Pandas Deep Dive', 'Matplotlib', 'Seaborn', 'Plotly'] },
-                    { day: 69, title: 'Day 81-100: Professional Portfolio', hours: 2, topics: ['Data Science Projects', 'Machine Learning', 'Deep Learning', 'Final Projects'] }
-                ]
-            },
-            {
-                id: 'sql',
-                name: 'SQL for Beginners — Zero to Hero',
-                instructor: 'Datawithbaraa',
-                totalHours: 30,
-                color: 'from-blue-500 to-cyan-600',
-                icon: 'database',
-                sections: [
-                    { day: 1, title: 'Introduction to Databases', hours: 2, topics: ['DBMS vs RDBMS', 'SQL vs T-SQL', 'SSMS Installation', 'Creating First DB'] },
-                    { day: 2, title: 'SELECT Statements', hours: 2, topics: ['Basic SELECT', 'Filtering Data', 'WHERE Clause', 'AND/OR/NOT'] },
-                    { day: 3, title: 'Sorting & Filtering', hours: 2, topics: ['ORDER BY', 'TOP Clause', 'DISTINCT', 'BETWEEN & IN'] },
-                    { day: 4, title: 'Pattern Matching', hours: 2, topics: ['LIKE Operator', 'Wildcards % and _', 'ESCAPE Clause', 'Regular Expressions'] },
-                    { day: 5, title: 'Aggregate Functions', hours: 2, topics: ['COUNT', 'SUM', 'AVG', 'MIN/MAX', 'GROUP BY'] },
-                    { day: 6, title: 'Grouping Data', hours: 2, topics: ['GROUP BY Advanced', 'HAVING Clause', 'Filtering Groups', 'Multiple Columns'] },
-                    { day: 7, title: 'Joins Part 1', hours: 2, topics: ['INNER JOIN', 'Table Aliases', 'Self Join', 'Multiple Joins'] },
-                    { day: 8, title: 'Joins Part 2', hours: 2, topics: ['LEFT JOIN', 'RIGHT JOIN', 'FULL JOIN', 'CROSS JOIN'] },
-                    { day: 9, title: 'Subqueries', hours: 2, topics: ['Single Row Subqueries', 'Multi Row Subqueries', 'Correlated Subqueries', 'EXISTS'] },
-                    { day: 10, title: 'Set Operations', hours: 2, topics: ['UNION', 'UNION ALL', 'INTERSECT', 'EXCEPT'] },
-                    { day: 11, title: 'Data Modification', hours: 2, topics: ['INSERT INTO', 'UPDATE', 'DELETE', 'TRUNCATE'] },
-                    { day: 12, title: 'Table Creation', hours: 2, topics: ['CREATE TABLE', 'Data Types', 'Constraints', 'Primary/Foreign Keys'] },
-                    { day: 13, title: 'Advanced Constraints', hours: 2, topics: ['CHECK Constraints', 'DEFAULT', 'IDENTITY', 'UNIQUE'] },
-                    { day: 14, title: 'Views & Indexes', hours: 2, topics: ['Creating Views', 'Updating Views', 'Indexes', 'Performance'] },
-                    { day: 15, title: 'Stored Procedures', hours: 2, topics: ['Creating Procedures', 'Parameters', 'Variables', 'IF/ELSE'] }
-                ]
-            },
-            {
-                id: 'pandas',
-                name: 'Python for Data Analysis',
-                instructor: 'Luke Barousse',
-                totalHours: 24,
-                color: 'from-green-500 to-emerald-600',
-                icon: 'bar-chart-2',
-                sections: [
-                    { day: 1, title: 'Environment Setup', hours: 2, topics: ['Anaconda Setup', 'Jupyter Notebooks', 'Pandas Installation', 'Basic Data Structures'] },
-                    { day: 2, title: 'Pandas Series', hours: 2, topics: ['Creating Series', 'Indexing', 'Vectorized Operations', 'Missing Data'] },
-                    { day: 3, title: 'DataFrames Basics', hours: 2, topics: ['Creating DataFrames', 'Reading CSV', 'Head/Tail', 'Info & Describe'] },
-                    { day: 4, title: 'Data Selection', hours: 2, topics: ['Column Selection', 'Row Selection', 'loc & iloc', 'Conditional Selection'] },
-                    { day: 5, title: 'Data Cleaning', hours: 2, topics: ['Handling Missing Values', 'Fillna', 'Dropna', 'Duplicates'] },
-                    { day: 6, title: 'Data Transformation', hours: 2, topics: ['Apply Method', 'Lambda Functions', 'Map & Replace', 'String Methods'] },
-                    { day: 7, title: 'Merging Data', hours: 2, topics: ['Concatenation', 'Merge', 'Join Types', 'Append'] },
-                    { day: 8, title: 'GroupBy Operations', hours: 2, topics: ['Split-Apply-Combine', 'Aggregation', 'Transformation', 'Filtering'] },
-                    { day: 9, title: 'Pivot Tables', hours: 2, topics: ['Pivot', 'Stack/Unstack', 'CrossTab', 'Melting Data'] },
-                    { day: 10, title: 'Time Series', hours: 2, topics: ['DateTime Index', 'Resampling', 'Time Shifting', 'Rolling Windows'] },
-                    { day: 11, title: 'Data Visualization', hours: 2, topics: ['Matplotlib Integration', 'Plotting in Pandas', 'Styling', 'Subplots'] },
-                    { day: 12, title: 'Real World Project', hours: 2, topics: ['Data Analysis Pipeline', 'Cleaning Real Data', 'Analysis', 'Visualization'] }
-                ]
-            },
-            {
-                id: 'powerbi',
-                name: 'Power BI for Data Analysis',
-                instructor: 'Luke Barousse',
-                totalHours: 20,
-                color: 'from-yellow-500 to-amber-600',
-                icon: 'pie-chart',
-                sections: [
-                    { day: 1, title: 'Power BI Introduction', hours: 2, topics: ['Power BI Desktop', 'Interface Tour', 'Data Sources', 'First Report'] },
-                    { day: 2, title: 'Data Import', hours: 2, topics: ['Excel Import', 'CSV Import', 'SQL Server Connection', 'Web Sources'] },
-                    { day: 3, title: 'Power Query Editor', hours: 2, topics: ['Transformations', 'Cleaning Steps', 'M Language Basics', 'Custom Columns'] },
-                    { day: 4, title: 'Data Modeling', hours: 2, topics: ['Relationships', 'Cardinality', 'Star Schema', 'Snowflake Schema'] },
-                    { day: 5, title: 'DAX Basics', hours: 2, topics: ['Calculated Columns', 'Measures', 'Aggregation Functions', 'Filter Context'] },
-                    { day: 6, title: 'DAX Advanced', hours: 2, topics: ['CALCULATE', 'FILTER', 'Time Intelligence', 'Context Transition'] },
-                    { day: 7, title: 'Visualizations', hours: 2, topics: ['Charts', 'Tables', 'Maps', 'KPIs', 'Formatting'] },
-                    { day: 8, title: 'Dashboard Design', hours: 2, topics: ['Report Layout', 'Themes', 'Interactions', 'Bookmarks'] },
-                    { day: 9, title: 'Publishing & Sharing', hours: 2, topics: ['Power BI Service', 'Publishing', 'Dashboards', 'Sharing'] },
-                    { day: 10, title: 'Capstone Project', hours: 2, topics: ['End-to-End Project', 'Data Import to Dashboard', 'Storytelling', 'Presentation'] }
-                ]
-            }
-        ];
-
-        // State Management
-        let currentDate = new Date();
-        let progress = JSON.parse(localStorage.getItem('dsProgress')) || {};
-        let streak = parseInt(localStorage.getItem('dsStreak')) || 0;
-        let lastStudyDate = localStorage.getItem('dsLastStudyDate') || null;
-
-        // Helper Functions
-        function getDayOfYear(date) {
-            const start = new Date(date.getFullYear(), 0, 0);
-            const diff = date - start;
-            return Math.floor(diff / (1000 * 60 * 60 * 24));
-        }
-
-        function getStartOfWeek(date) {
-            const d = new Date(date);
-            const day = d.getDay();
-            const diff = d.getDate() - day + (day === 0 ? -6 : 1);
-            return new Date(d.setDate(diff));
-        }
-
-        function formatDate(date) {
-            return date.toLocaleDateString('en-US', { weekday: 'short', month: 'short', day: 'numeric' });
-        }
-
-        function isSunday(date) {
-            return date.getDay() === 0;
-        }
-
-        function getDayNumber(startDate, currentDate) {
-            const oneDay = 24 * 60 * 60 * 1000;
-            const diffDays = Math.round((currentDate - startDate) / oneDay);
-            return diffDays + 1;
-        }
-
-        // Calculate which course and section for a given day number
-        function getScheduleForDay(dayNum) {
-            if (dayNum <= 0) return null;
-            
-            let accumulatedDays = 0;
-            for (let course of courses) {
-                if (dayNum <= accumulatedDays + course.sections.length) {
-                    const sectionIndex = dayNum - accumulatedDays - 1;
-                    return {
-                        course: course,
-                        section: course.sections[sectionIndex],
-                        courseDay: sectionIndex + 1,
-                        globalDay: dayNum
-                    };
-                }
-                accumulatedDays += course.sections.length;
-            }
-            return null; // All courses completed
-        }
-
-        // Initialize start date (can be adjusted)
-        const startDate = new Date('2025-01-01');
-
-        // Render Functions
-        function renderCourseRoadmap() {
-            const container = document.getElementById('courseRoadmap');
-            let totalCompletedHours = 0;
-            
-            container.innerHTML = courses.map((course, index) => {
-                const courseProgress = progress[course.id] || 0;
-                const completedHours = Math.min(courseProgress * 2, course.totalHours);
-                totalCompletedHours += completedHours;
-                const percentage = Math.round((completedHours / course.totalHours) * 100);
-                
-                return `
-                    <div class="course-card glass-panel rounded-xl p-4 border border-slate-700 ${percentage === 100 ? 'opacity-60' : ''}">
-                        <div class="flex items-center justify-between mb-3">
-                            <div class="w-10 h-10 bg-gradient-to-br ${course.color} rounded-lg flex items-center justify-center">
-                                <i data-lucide="${course.icon}" class="w-5 h-5 text-white"></i>
-                            </div>
-                            <span class="text-xs font-bold ${percentage === 100 ? 'text-green-400' : 'text-blue-400'} mono">${percentage}%</span>
-                        </div>
-                        <h3 class="font-bold text-sm mb-1 line-clamp-1">${course.name}</h3>
-                        <p class="text-xs text-slate-400 mb-3">${course.instructor}</p>
-                        <div class="w-full bg-slate-700 rounded-full h-1.5 mb-2">
-                            <div class="bg-gradient-to-r ${course.color} h-1.5 rounded-full transition-all duration-500" style="width: ${percentage}%"></div>
-                        </div>
-                        <div class="flex justify-between text-xs text-slate-500 mono">
-                            <span>${completedHours}h done</span>
-                            <span>${course.totalHours}h total</span>
-                        </div>
-                    </div>
-                `;
-            }).join('');
-            
-            // Update total stats
-            const totalTarget = courses.reduce((sum, c) => sum + c.totalHours, 0);
-            document.getElementById('totalHoursCompleted').textContent = totalCompletedHours;
-            document.getElementById('totalHoursTarget').textContent = totalTarget;
-            document.getElementById('totalProgressBar').style.width = `${(totalCompletedHours / totalTarget) * 100}%`;
-            
-            lucide.createIcons();
-        }
-
-        function renderDailySchedule() {
-            const dateStr = currentDate.toISOString().split('T')[0];
-            const dayNum = getDayNumber(startDate, currentDate);
-            const schedule = getScheduleForDay(dayNum);
-            
-            document.getElementById('currentDateDisplay').textContent = formatDate(currentDate);
-            document.getElementById('currentWeek').textContent = `Week ${Math.ceil(dayNum / 7)}`;
-            
-            // Check if Sunday
-            if (isSunday(currentDate)) {
-                document.getElementById('dayTypeIndicator').classList.remove('hidden');
-                document.getElementById('scheduleContainer').classList.add('hidden');
-                document.getElementById('currentCourseName').textContent = 'Rest Day';
-                document.getElementById('currentCourseProgress').textContent = 'Recovery Mode';
-                return;
-            } else {
-                document.getElementById('dayTypeIndicator').classList.add('hidden');
-                document.getElementById('scheduleContainer').classList.remove('hidden');
-            }
-            
-            if (!schedule) {
-                // All courses completed
-                document.getElementById('morningTopic').textContent = 'Congratulations!';
-                document.getElementById('morningDetails').textContent = 'You have completed all courses!';
-                return;
-            }
-            
-            const { course, section } = schedule;
-            document.getElementById('currentCourseName').textContent = course.name;
-            document.getElementById('currentCourseProgress').textContent = `Day ${schedule.courseDay} of ${course.sections.length}`;
-            
-            // Morning Session
-            document.getElementById('morningTopic').textContent = section.title;
-            document.getElementById('morningDetails').textContent = `Focus: ${section.topics.slice(0, 2).join(', ')}...`;
-            document.getElementById('morningDuration').textContent = `${section.hours} hours`;
-            document.getElementById('morningCourse').textContent = course.name;
-            
-            // Afternoon Session
-            document.getElementById('afternoonTopic').textContent = `Practice: ${section.title}`;
-            document.getElementById('afternoonDetails').textContent = 'Apply concepts from morning session';
-            document.getElementById('afternoonTasks').innerHTML = section.topics.map(t => `<li>• Practice ${t}</li>`).join('');
-            
-            // Evening Session
-            document.getElementById('eveningTopic').textContent = 'Review & Continue';
-            document.getElementById('eveningDetails').textContent = `Review ${section.title} and prepare quiz`;
-            document.getElementById('quizTopic').textContent = `Topics: ${section.topics.slice(0, 3).join(', ')}`;
-            
-            // Restore checkbox states
-            const dayProgress = progress[dateStr] || {};
-            ['morning', 'afternoon', 'evening'].forEach(session => {
-                const checkbox = document.querySelector(`#${session}Session input[type="checkbox"]`);
-                const checkIcon = document.querySelector(`#${session}Session .check-icon`);
-                const block = document.getElementById(`${session}Session`);
-                
-                if (dayProgress[session]) {
-                    checkbox.checked = true;
-                    checkIcon.style.opacity = '1';
-                    block.classList.add('completed');
-                    block.classList.remove('active');
-                } else {
-                    checkbox.checked = false;
-                    checkIcon.style.opacity = '0';
-                    block.classList.remove('completed');
-                    // Highlight if today
-                    if (isToday(currentDate)) {
-                        block.classList.add('active');
-                    }
-                }
-            });
-            
-            lucide.createIcons();
-        }
-
-        function renderWeeklyOverview() {
-            const tbody = document.getElementById('weeklyTable');
-            const weekStart = getStartOfWeek(currentDate);
-            let html = '';
-            
-            for (let i = 0; i < 7; i++) {
-                const date = new Date(weekStart);
-                date.setDate(weekStart.getDate() + i);
-                const dateStr = date.toISOString().split('T')[0];
-                const dayNum = getDayNumber(startDate, date);
-                const schedule = getScheduleForDay(dayNum);
-                const isSun = isSunday(date);
-                const isToday = date.toDateString() === new Date().toDateString();
-                const dayProgress = progress[dateStr] || {};
-                const completed = dayProgress.morning && dayProgress.afternoon && dayProgress.evening;
-                
-                html += `
-                    <tr class="border-b border-slate-800 hover:bg-slate-800/50 transition-colors ${isToday ? 'bg-blue-900/20' : ''}">
-                        <td class="py-3 font-semibold ${isSun ? 'text-orange-400' : 'text-slate-300'}">${date.toLocaleDateString('en-US', { weekday: 'short' })}</td>
-                        <td class="py-3 text-slate-400 mono text-xs">${formatDate(date)}</td>
-                        <td class="py-3">
-                            ${isSun ? '<span class="text-orange-400 text-xs">Rest Day</span>' : 
-                              schedule ? `<span class="text-xs px-2 py-1 rounded bg-slate-700 text-slate-300">${schedule.course.id.toUpperCase()}</span>` : 
-                              '<span class="text-slate-500 text-xs">-</span>'}
-                        </td>
-                        <td class="py-3 text-sm text-slate-300">
-                            ${isSun ? 'Recovery' : schedule ? schedule.section.title : 'Completed'}
-                        </td>
-                        <td class="py-3">
-                            ${isSun ? '<span class="text-orange-400"><i data-lucide="coffee" class="w-4 h-4 inline"></i></span>' :
-                              completed ? '<span class="text-green-400 flex items-center gap-1"><i data-lucide="check-circle" class="w-4 h-4"></i> Done</span>' :
-                              '<span class="text-slate-600">Pending</span>'}
-                        </td>
-                    </tr>
-                `;
-            }
-            
-            tbody.innerHTML = html;
-            lucide.createIcons();
-        }
-
-        function isToday(date) {
-            return date.toDateString() === new Date().toDateString();
-        }
-
-        function toggleSession(session) {
-            const dateStr = currentDate.toISOString().split('T')[0];
-            if (!progress[dateStr]) progress[dateStr] = {};
-            
-            const checkbox = document.querySelector(`#${session}Session input[type="checkbox"]`);
-            const checkIcon = document.querySelector(`#${session}Session .check-icon`);
-            const block = document.getElementById(`${session}Session`);
-            
-            progress[dateStr][session] = checkbox.checked;
-            
-            if (checkbox.checked) {
-                checkIcon.style.opacity = '1';
-                block.classList.add('completed');
-                block.classList.remove('active');
-                updateStreak();
-            } else {
-                checkIcon.style.opacity = '0';
-                block.classList.remove('completed');
-            }
-            
-            // Update course progress
-            updateCourseProgress();
-            
-            localStorage.setItem('dsProgress', JSON.stringify(progress));
-            renderWeeklyOverview();
-            renderCourseRoadmap();
-            updateStats();
-        }
-
-        function updateCourseProgress() {
-            // Calculate progress per course based on completed days
-            courses.forEach(course => {
-                let completedDays = 0;
-                Object.keys(progress).forEach(dateStr => {
-                    const day = new Date(dateStr);
-                    const dayNum = getDayNumber(startDate, day);
-                    const schedule = getScheduleForDay(dayNum);
-                    if (schedule && schedule.course.id === course.id) {
-                        const dayProg = progress[dateStr];
-                        if (dayProg.morning && dayProg.afternoon && dayProg.evening) {
-                            completedDays++;
-                        }
-                    }
-                });
-                progress[course.id] = completedDays;
-            });
-            localStorage.setItem('dsProgress', JSON.stringify(progress));
-        }
-
-        function updateStreak() {
-            const today = new Date().toDateString();
-            const yesterday = new Date();
-            yesterday.setDate(yesterday.getDate() - 1);
-            
-            if (lastStudyDate === today) return;
-            
-            if (lastStudyDate === yesterday.toDateString() || !lastStudyDate) {
-                streak++;
-            } else {
-                streak = 1;
-            }
-            
-            lastStudyDate = today;
-            localStorage.setItem('dsStreak', streak);
-            localStorage.setItem('dsLastStudyDate', lastStudyDate);
-            updateStats();
-        }
-
-        function updateStats() {
-            document.getElementById('streakCount').textContent = streak;
-            document.getElementById('streakDisplay').textContent = streak;
-            
-            // Count total sessions
-            let sessions = 0;
-            Object.values(progress).forEach(day => {
-                if (typeof day === 'object' && day !== null) {
-                    if (day.morning) sessions++;
-                    if (day.afternoon) sessions++;
-                    if (day.evening) sessions++;
-                }
-            });
-            document.getElementById('sessionsCompleted').textContent = sessions;
-        }
-
-        function changeDay(delta) {
-            currentDate.setDate(currentDate.getDate() + delta);
-            renderDailySchedule();
-            renderWeeklyOverview();
-        }
-
-        function resetAllProgress() {
-            if (confirm('Are you sure you want to reset all progress? This cannot be undone.')) {
-                progress = {};
-                streak = 0;
-                lastStudyDate = null;
-                localStorage.removeItem('dsProgress');
-                localStorage.removeItem('dsStreak');
-                localStorage.removeItem('dsLastStudyDate');
-                renderCourseRoadmap();
-                renderDailySchedule();
-                renderWeeklyOverview();
-                updateStats();
-            }
-        }
-
-        // Initialize
-        document.addEventListener('DOMContentLoaded', () => {
-            updateCourseProgress();
-            renderCourseRoadmap();
-            renderDailySchedule();
-            renderWeeklyOverview();
-            updateStats();
-        });
-    </script>
-</body>
-</html>
+                                <p class="text-xs text-slate-500 uppercase tracking-wider mb-2">Daily Quiz (3 Questions)</p>
+                                <div class="space-y-2">
+                                    <input type="text" placeholder="1. Question from today's topic..." class="quiz-input w-full px-3 
