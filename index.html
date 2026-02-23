@@ -1,3 +1,4 @@
+
 <!DOCTYPE html>
 <html lang="en">
 <head>
@@ -98,9 +99,39 @@
             background: rgba(16, 185, 129, 0.1);
             border-left-color: #10b981;
         }
+        
+        .notif-btn {
+            transition: all 0.3s;
+        }
+        .notif-btn.active {
+            background: #10b981;
+            color: white;
+            border-color: #10b981;
+        }
     </style>
 </head>
 <body class="min-h-screen pb-20">
+
+    <!-- Notification Permission Modal -->
+    <div id="notifModal" class="fixed inset-0 bg-black/80 backdrop-blur-sm z-50 hidden flex items-center justify-center p-4">
+        <div class="glass-panel rounded-2xl p-6 max-w-md w-full border border-blue-500/30">
+            <div class="flex items-center gap-3 mb-4">
+                <div class="w-12 h-12 bg-blue-500/20 rounded-xl flex items-center justify-center">
+                    <i data-lucide="bell" class="w-6 h-6 text-blue-400"></i>
+                </div>
+                <h3 class="text-xl font-bold">Enable Study Reminders?</h3>
+            </div>
+            <p class="text-slate-300 mb-6">Get notified at 5:00 AM, 11:40 AM, and 7:00 PM for your study sessions. Works even when your phone is locked!</p>
+            <div class="flex gap-3">
+                <button onclick="requestNotificationPermission()" class="flex-1 bg-blue-500 hover:bg-blue-600 text-white font-semibold py-3 rounded-xl transition-colors">
+                    Enable Notifications
+                </button>
+                <button onclick="closeNotifModal()" class="flex-1 bg-slate-700 hover:bg-slate-600 text-slate-300 font-semibold py-3 rounded-xl transition-colors">
+                    Maybe Later
+                </button>
+            </div>
+        </div>
+    </div>
 
     <!-- Header -->
     <header class="sticky top-0 z-50 glass-panel border-b border-slate-700">
@@ -117,7 +148,13 @@
                 </div>
             </div>
             
-            <div class="flex items-center gap-6">
+            <div class="flex items-center gap-4">
+                <!-- Notification Toggle -->
+                <button onclick="toggleNotifications()" id="notifBtn" class="notif-btn flex items-center gap-2 px-3 py-2 rounded-lg bg-slate-800 border border-slate-600 hover:border-blue-400 text-sm text-slate-300">
+                    <i data-lucide="bell-off" class="w-4 h-4" id="notifIcon"></i>
+                    <span id="notifText" class="hidden sm:inline">Off</span>
+                </button>
+
                 <!-- Study Timer Widget -->
                 <div class="hidden md:flex items-center gap-3 bg-slate-800/50 rounded-xl px-4 py-2 border border-slate-700">
                     <div class="text-right">
@@ -613,11 +650,19 @@
         let lastStudyDate = localStorage.getItem('dsLastStudyDate') || null;
         let notes = JSON.parse(localStorage.getItem('dsNotes')) || {};
         let quizPoints = JSON.parse(localStorage.getItem('dsQuizPoints')) || {};
+        let notificationsEnabled = localStorage.getItem('dsNotifications') === 'true';
         
         // Timer State
         let timerInterval = null;
         let timerSeconds = 0;
         let timerRunning = false;
+
+        // Study Schedule Times
+        const studyTimes = {
+            morning: { hour: 5, minute: 0, label: 'Morning Session', icon: 'sun' },
+            afternoon: { hour: 11, minute: 40, label: 'Afternoon Session', icon: 'code-2' },
+            evening: { hour: 19, minute: 0, label: 'Evening Session', icon: 'moon' }
+        };
 
         // Helper Functions
         function getDayNumber(startDate, currentDate) {
@@ -654,6 +699,112 @@
                 accumulatedDays += course.sections.length;
             }
             return null;
+        }
+
+        // Notification Functions
+        function checkNotificationPermission() {
+            if (!("Notification" in window)) {
+                console.log("This browser does not support notifications");
+                return;
+            }
+            
+            if (Notification.permission === "granted") {
+                notificationsEnabled = true;
+                localStorage.setItem('dsNotifications', 'true');
+                updateNotifButton();
+                scheduleNotifications();
+            } else if (Notification.permission !== "denied") {
+                // Show modal after 3 seconds
+                setTimeout(() => {
+                    document.getElementById('notifModal').classList.remove('hidden');
+                }, 3000);
+            }
+        }
+
+        function requestNotificationPermission() {
+            Notification.requestPermission().then(permission => {
+                if (permission === "granted") {
+                    notificationsEnabled = true;
+                    localStorage.setItem('dsNotifications', 'true');
+                    updateNotifButton();
+                    scheduleNotifications();
+                    closeNotifModal();
+                    
+                    // Send test notification
+                    new Notification("🎓 Study Planner Ready!", {
+                        body: "You'll be reminded at 5:00 AM, 11:40 AM, and 7:00 PM for study sessions.",
+                        icon: "https://cdn-icons-png.flaticon.com/512/3659/3659898.png",
+                        badge: "https://cdn-icons-png.flaticon.com/512/3659/3659898.png"
+                    });
+                }
+            });
+        }
+
+        function closeNotifModal() {
+            document.getElementById('notifModal').classList.add('hidden');
+        }
+
+        function toggleNotifications() {
+            if (!notificationsEnabled) {
+                if (!("Notification" in window)) {
+                    alert("Your browser doesn't support notifications");
+                    return;
+                }
+                requestNotificationPermission();
+            } else {
+                notificationsEnabled = false;
+                localStorage.setItem('dsNotifications', 'false');
+                updateNotifButton();
+                alert("Notifications disabled. You can re-enable them by clicking the bell again.");
+            }
+        }
+
+        function updateNotifButton() {
+            const btn = document.getElementById('notifBtn');
+            const icon = document.getElementById('notifIcon');
+            const text = document.getElementById('notifText');
+            
+            if (notificationsEnabled) {
+                btn.classList.add('active');
+                icon.setAttribute('data-lucide', 'bell');
+                text.textContent = 'On';
+            } else {
+                btn.classList.remove('active');
+                icon.setAttribute('data-lucide', 'bell-off');
+                text.textContent = 'Off';
+            }
+            lucide.createIcons();
+        }
+
+        function scheduleNotifications() {
+            if (!notificationsEnabled) return;
+            
+            // Check every minute
+            setInterval(() => {
+                const now = new Date();
+                const currentHour = now.getHours();
+                const currentMinute = now.getMinutes();
+                const currentSecond = now.getSeconds();
+                
+                // Only check at exact minute:00 to avoid spam
+                if (currentSecond !== 0) return;
+                
+                // Don't notify on Sundays (rest day)
+                if (now.getDay() === 0) return;
+                
+                for (let [key, session] of Object.entries(studyTimes)) {
+                    if (currentHour === session.hour && currentMinute === session.minute) {
+                        new Notification("🎓 Time to Study!", {
+                            body: `Your ${session.label} starts now! (${session.hour}:${session.minute.toString().padStart(2, '0')})`,
+                            icon: "https://cdn-icons-png.flaticon.com/512/3659/3659898.png",
+                            badge: "https://cdn-icons-png.flaticon.com/512/3659/3659898.png",
+                            tag: key, // Prevents duplicate notifications
+                            requireInteraction: true, // Stays visible until clicked
+                            vibrate: [200, 100, 200] // Vibration pattern for mobile
+                        });
+                    }
+                }
+            }, 1000); // Check every second, but only trigger at :00
         }
 
         // Timer Functions
@@ -841,6 +992,7 @@
             const schedule = getScheduleForDay(dayNum);
             
             document.getElementById('currentDateDisplay').textContent = formatDate(currentDate);
+            document.getElementById('currentWeek').textContent = `Week ${Math.ceil(dayNum / 7)}`;
             
             if (isSunday(currentDate)) {
                 document.getElementById('dayTypeIndicator').classList.remove('hidden');
@@ -900,9 +1052,7 @@
 
         function renderWeeklyOverview() {
             const tbody = document.getElementById('weeklyTable');
-            const weekStart = new Date(currentDate);
-            weekStart.setDate(currentDate.getDate() - currentDate.getDay() + 1);
-            
+            const weekStart = getStartOfWeek(currentDate);
             let html = '';
             
             for (let i = 0; i < 7; i++) {
@@ -1089,7 +1239,10 @@
                 localStorage.removeItem('dsLastStudyDate');
                 localStorage.removeItem('dsNotes');
                 localStorage.removeItem('dsQuizPoints');
-                location.reload();
+                renderCourseRoadmap();
+                renderDailySchedule();
+                renderWeeklyOverview();
+                updateStats();
             }
         }
 
@@ -1103,6 +1256,10 @@
             renderWeeklyOverview();
             renderWeekendQuiz();
             updateStats();
+            updateNotifButton();
+            
+            // Check notification permission after a delay
+            setTimeout(checkNotificationPermission, 2000);
         });
     </script>
 </body>
